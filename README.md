@@ -11,6 +11,10 @@ AnyAPI:
 
 ## How to use
 
+```sh
+pip install anyapi2
+```
+
 ```python
 from anyapi import API
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from functools import partialmethod
 from logging import getLogger
 from pathlib import Path
 from typing import ClassVar
@@ -24,14 +23,21 @@ class API:
     )
     cookies: Path | None = None
 
-    BASE_URL: ClassVar[str]
+    API_URL: ClassVar[str]
     TIMEOUT: ClassVar[int] = 10
+    DEFAULT_USER_AGENT: str = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36'
 
     def __post_init__(self):
         self.session.mount('http://', self.adapter)
         self.session.mount('https://', self.adapter)
         if self.cookies:
             self.session.cookies = load_cookies(self.cookies)
+        self.session.headers.update({
+            'user-agent': self.get_user_agent(),
+        })
+
+    def get_user_agent(self) -> str:
+        return self.DEFAULT_USER_AGENT
 
     @retry(
         reraise=True,
@@ -41,7 +47,7 @@ class API:
     )
     def request(self, method: str, path: str, check: bool = True, **kwargs) -> requests.Response:
         if path.startswith('/'):
-            path = self.BASE_URL + path
+            path = self.API_URL + path
 
         kwargs.setdefault('timeout', self.TIMEOUT)
         response = self.session.request(method, path, **kwargs)
@@ -54,5 +60,8 @@ class API:
 
         return response
 
-    get = partialmethod(request, 'get')
-    post = partialmethod(request, 'post')
+    def get(self, *args, **kwargs) -> requests.Response:
+        return self.request('get', *args, **kwargs)
+
+    def post(self, *args, **kwargs) -> requests.Response:
+        return self.request('post', *args, **kwargs)

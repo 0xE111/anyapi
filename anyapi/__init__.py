@@ -41,7 +41,7 @@ class API:
 
     @retry(
         reraise=True,
-        retry=retry_if_exception_type(TryAgain),
+        retry=retry_if_exception_type((TryAgain, requests.exceptions.ReadTimeout)),
         wait=wait_incrementing(start=1, increment=2),
         stop=stop_after_attempt(20),
     )

@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='anyapi2',
-    version='2.0.1',
+    version='0.0.2',
     packages=find_packages(),
     include_package_data=True,
     install_requires=['requests==2.28.1', 'tenacity==8.1.0'],

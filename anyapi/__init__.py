@@ -26,19 +26,18 @@ class API:
 
     API_URL: ClassVar[str]
     TIMEOUT: ClassVar[int] = 10
-    DEFAULT_USER_AGENT: str = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36'
+    USER_AGENT: ClassVar[str] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36'
+    HEADERS: ClassVar[dict] = {}
 
     def __post_init__(self):
         self.session.mount('http://', self.adapter)
         self.session.mount('https://', self.adapter)
         if self.cookies:
             self.session.cookies = load_cookies(self.cookies)
-        self.session.headers.update({
-            'user-agent': self.get_user_agent(),
-        })
 
-    def get_user_agent(self) -> str:
-        return self.DEFAULT_USER_AGENT
+    @property
+    def user_agent(self) -> str:
+        return self.USER_AGENT
 
     @retry(
         reraise=True,
@@ -51,6 +50,10 @@ class API:
             path = self.API_URL + path
 
         kwargs.setdefault('timeout', self.TIMEOUT)
+        kwargs.setdefault('headers', {}).update({
+            'user-agent': self.user_agent,
+            **self.HEADERS,
+        })
         response = self.session.request(method, path, **kwargs)
 
         if response.status_code == requests.codes.too_many_requests:

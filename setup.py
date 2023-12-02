@@ -7,10 +7,10 @@ from setuptools import find_packages, setup
 
 setup(
     name='anyapi2',
-    version='0.0.3',
+    version='0.0.4',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['requests==2.28.1', 'tenacity==8.1.0'],
+    install_requires=['requests<=3.0', 'tenacity<=9.0'],
     license='MIT',
     description='Boilerplate code for api integrations',
     long_description=(Path(__file__).parent / 'README.md').read_text(),

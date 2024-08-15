@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import requests
-from tenacity import TryAgain, retry, retry_if_exception_type, stop_after_attempt, wait_incrementing
+from tenacity import Retrying, TryAgain, retry, retry_if_exception_type, stop_after_attempt, wait_incrementing
 
 from .cookies import load_cookies
 
@@ -22,9 +22,15 @@ class API:
     adapter: requests.adapters.HTTPAdapter = requests.adapters.HTTPAdapter(
         pool_maxsize=8,
     )
-    cookies: Path | None = None
+    cookies: Path | dict | None = None
+    retry: Retrying | None = retry(
+        reraise=True,
+        retry=retry_if_exception_type((TryAgain, requests.exceptions.ReadTimeout)),
+        wait=wait_incrementing(start=1, increment=2),
+        stop=stop_after_attempt(3),
+    )
 
-    API_URL: ClassVar[str]
+    BASE_URL: ClassVar[str]
     TIMEOUT: ClassVar[int] = 10
     USER_AGENT: ClassVar[str] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.126 Safari/537.36'
     HEADERS: ClassVar[dict] = {}
@@ -32,22 +38,24 @@ class API:
     def __post_init__(self):
         self.session.mount('http://', self.adapter)
         self.session.mount('https://', self.adapter)
-        if self.cookies:
+
+        if isinstance(self.cookies, Path):
             self.session.cookies = load_cookies(self.cookies)
+        elif isinstance(self.cookies, dict):
+            self.session.cookies.update(self.cookies)
+
+        if self.retry:
+            self.request = self.retry(self.request)
 
     @property
     def user_agent(self) -> str:
         return self.USER_AGENT
 
-    @retry(
-        reraise=True,
-        retry=retry_if_exception_type((TryAgain, requests.exceptions.ReadTimeout)),
-        wait=wait_incrementing(start=1, increment=2),
-        stop=stop_after_attempt(20),
-    )
+    # @sleep_and_retry
+    # @limits(calls=CALLS, period=RATE_LIMIT)
     def request(self, method: str, path: str, check: bool = True, **kwargs) -> requests.Response:
         if path.startswith('/'):
-            path = self.API_URL + path
+            path = self.BASE_URL + path
 
         kwargs.setdefault('timeout', self.TIMEOUT)
         kwargs.setdefault('headers', {}).update({

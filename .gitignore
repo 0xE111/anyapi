@@ -133,3 +133,4 @@ dmypy.json
 .vscode
 
 docker-compose.yml
+.pdm-python
